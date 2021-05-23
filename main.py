@@ -13,7 +13,6 @@ class Ui(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         self.ui.FilePickerBtn.clicked.connect(self.onPickFileClick)
-        self.ui.CalculateBtn.clicked.connect(self.onCalculateClick)
         self.ui.CalculateHexBtn.clicked.connect(self.onCalculateHexClick)
         self.ui.SaveBtn.clicked.connect(self.onSaveClick)
         self.selectedFile = ''
@@ -28,28 +27,22 @@ class Ui(QtWidgets.QMainWindow):
         self.ui.FilePickerLbl.setText(self.selectedFile)
         self.image = loadImage(self.selectedFile)
         self.showImage(self.image)
-
-    def onCalculateClick(self):
-        k = self.ui.ColorsSpin.value()
-        self.segmentedImage = calcKMeansImage(self.hexagonImage,k)
-        self.showImage(self.segmentedImage)
-
-    def onCalculateHexClick(self):
-        innerR = self.ui.HorizontalHexSpin.value()
-        k = self.ui.ColorsSpin.value()
-        self.hexagonImage = calcHexagonImage(self.image, innerR,k)
-        self.showImage(self.hexagonImage)
-
-    def onSaveClick(self):
-        path = self.selectedFile + '.hex.jpeg'
-        saveImage(path, self.segmentedImage)
         
-    
     def getFile(self):
         options = QtWidgets.QFileDialog.Options()
         options |= QtWidgets.QFileDialog.DontUseNativeDialog
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;Python Files (*.py)", options=options)
         return fileName
+
+    def onCalculateHexClick(self):
+        n = self.ui.HorizontalHexSpin.value()
+        k = self.ui.ColorsSpin.value()
+        self.hexagonImage = calcHexagonImage(self.image, n, k)
+        self.showImage(self.hexagonImage)
+
+    def onSaveClick(self):
+        path = self.selectedFile + '.hex.jpeg'
+        saveImage(path, self.hexagonImage)
     
     def showImage(self, image):
         qImage = QtGui.QImage(image.data,image.shape[1],image.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()

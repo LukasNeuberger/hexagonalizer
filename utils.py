@@ -13,25 +13,12 @@ def saveImage(path, image):
 def circleAverage(image, center, r):
     total = np.uint32([0,0,0])
     count = 0
-    for i in range(center[0]-r, center[0]+r):
-        for j in range(center[1]-r, center[1] + r):
-            if (center[0] - i) ** 2 + (center[1] - j) ** 2 <= r**2:
-                total += image[i,j]
+    for y in range(int(center[0]-r), int(center[0]+r+1)):
+        for x in range(int(center[1]-r), int(center[1] + r+1)):
+            if (center[0] - y) ** 2 + (center[1] - x) ** 2 <= r**2:
+                total += image[int(y),int(x)]
                 count += 1
     return np.uint8(total // count)
-
-def paintCircle(image, center, r, color):
-    p_rad = np.deg2rad([150.,90,30.,-30.,-90.,-150.,150.]) 
-    X = np.cos(p_rad)*r + center[1]
-    Y = np.sin(p_rad)*r + center[0]
-    polygon = tuple(zip(X,Y))
-
-    hex = Image.new('L', (image.shape[1], image.shape[0]), 0)
-    ImageDraw.Draw(hex).polygon(polygon, outline=1, fill=1)
-    hex = np.array(hex)
-    image[:,:,0] += hex*color[0]
-    image[:,:,1] += hex*color[1]
-    image[:,:,2] += hex*color[2]
 
 
 def calcKMeansImage(image, k):
@@ -47,53 +34,63 @@ def calcKMeansImage(image, k):
     segmentedImage = cv.cvtColor(segmentedImage,cv.COLOR_YCrCb2BGR)
     return segmentedImage
 
-def calcHexagonImage(image, innerR, k):
-    outerR = int((innerR * 2) / math.sqrt(3))
+def calcHexagonImage(image, n, k):
+    
+    print('Calculating average color of hexagons')
+
     height = image.shape[0]
     width = image.shape[1]
+    innerR = width / (2*n)
+    outerR = (innerR * 2) / math.sqrt(3)
 
     rows = int((height - 2*outerR) / (1.5*outerR) + 1)
-    cols = int((width - 2*innerR) / (2*innerR))
+    cols = n
 
     avgs = np.zeros((rows, cols, 3), np.uint8)
-    i = 0
     offset = False
-    for y in range(outerR, height - outerR, int(1.5*outerR)):
+    for row in range(rows):
+        y = outerR + 1.5*outerR*row
         offsetX = innerR if offset else 0
-        j = 0
-        for x in range(innerR + offsetX, width - innerR - offsetX, 2*innerR):
-            avg = circleAverage(image, (y,x), innerR)
-            avgs[i,j] = avg
-            j += 1
+        for col in range(cols):
+            x = innerR + offsetX + 2*innerR*col
+            if x + innerR <= width:
+                avg = circleAverage(image, (y,x), innerR)
+                avgs[row,col] = avg
+
+        print('Calculating average color of hexagons progress: %0.1f' % (((row + 1)*cols) / (cols * rows) * 100))
         offset = not offset
-        i += 1
+    
+    print('Reducing number of colors')
 
     avgs = calcKMeansImage(avgs,k)
+    
+    print('Drawing hexagon image')
 
     innerRR = 10
-    outerRR = int((innerRR * 2) / math.sqrt(3))
+    outerRR = (innerRR * 2) / math.sqrt(3)
     newwidth = int(cols * 2 * innerRR)
-    newheight = int((rows - 1) * (outerRR * 3/2 ) + (outerRR *2))
-    hexagonImage = np.zeros((newheight, newwidth, 3), np.uint8)
-    hexImage = Image.new('RGB', (newwidth,newheight), 0)
+    newheight = int((rows - 1) * (outerRR * 1.5 ) + (outerRR *2))
+    hexImage = Image.new('RGB', (newwidth, newheight), 0)
 
     p_rad = np.deg2rad([150.,90,30.,-30.,-90.,-150.,150.]) 
-    X = np.cos(p_rad)*outerRR
-    Y = np.sin(p_rad)*outerRR
+    hexX = np.cos(p_rad)*outerRR
+    hexY = np.sin(p_rad)*outerRR
     offset = False
-    for y in range(rows):
+    for row in range(rows):
+        y = hexY + outerRR + 1.5*outerRR * row
         offsetX = innerRR if offset else 0
-        for x in range(cols):
-            cX = X + innerRR + offsetX + 2 * innerRR * x
-            cY = Y + outerRR + int(1.5*outerRR) * y
-            polygon = tuple(zip(cX,cY))
+        for col in range(cols):
+            x = hexX + innerRR + offsetX + 2 * innerRR * col
+            polygon = tuple(zip(x,y))
+            ImageDraw.Draw(hexImage).polygon(polygon, outline=tuple(avgs[row,col]), fill=tuple(avgs[row,col]))
 
-            ImageDraw.Draw(hexImage).polygon(polygon, outline=tuple(avgs[y,x]), fill=tuple(avgs[y,x]))
+        print('Drawing hexagon image progress: %0.1f' % (((row+1)*cols) / (cols * rows) * 100))
         offset = not offset
     
     hexImage = np.array(hexImage)
 
-    print(cols,rows)
+    print(cols,rows, cols * rows)
+    print('width: %fcm  height: %fcm' % (cols * 3, rows * (3 * 2) / math.sqrt(3)))
 
     return hexImage
 
