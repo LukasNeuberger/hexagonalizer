@@ -34,7 +34,8 @@ def calcKMeansImage(image, k):
     segmentedImage = cv.cvtColor(segmentedImage,cv.COLOR_YCrCb2BGR)
     return segmentedImage
 
-def calcHexagonImage(image, n, k):
+
+def calcHexagonPattern(image, n):
     
     print('Calculating average color of hexagons')
 
@@ -46,7 +47,7 @@ def calcHexagonImage(image, n, k):
     rows = int((height - 2*outerR) / (1.5*outerR) + 1)
     cols = n
 
-    avgs = np.zeros((rows, cols, 3), np.uint8)
+    pattern = np.zeros((rows, cols, 3), np.uint8)
     offset = False
     for row in range(rows):
         y = outerR + 1.5*outerR*row
@@ -55,18 +56,20 @@ def calcHexagonImage(image, n, k):
             x = innerR + offsetX + 2*innerR*col
             if x + innerR <= width:
                 avg = circleAverage(image, (y,x), innerR)
-                avgs[row,col] = avg
+                pattern[row,col] = avg
 
         print('Calculating average color of hexagons progress: %0.1f' % (((row + 1)*cols) / (cols * rows) * 100))
         offset = not offset
-    
-    print('Reducing number of colors')
+    return pattern
 
-    avgs = calcKMeansImage(avgs,k)
+def calcHexagonImage(pattern):
     
     print('Drawing hexagon image')
 
-    innerRR = 10
+    cols = pattern.shape[1]
+    rows = pattern.shape[0]
+
+    innerRR = 20
     outerRR = (innerRR * 2) / math.sqrt(3)
     newwidth = int(cols * 2 * innerRR)
     newheight = int((rows - 1) * (outerRR * 1.5 ) + (outerRR *2))
@@ -82,7 +85,7 @@ def calcHexagonImage(image, n, k):
         for col in range(cols):
             x = hexX + innerRR + offsetX + 2 * innerRR * col
             polygon = tuple(zip(x,y))
-            ImageDraw.Draw(hexImage).polygon(polygon, outline=tuple(avgs[row,col]), fill=tuple(avgs[row,col]))
+            ImageDraw.Draw(hexImage).polygon(polygon, outline=tuple(pattern[row,col]), fill=tuple(pattern[row,col]))
 
         print('Drawing hexagon image progress: %0.1f' % (((row+1)*cols) / (cols * rows) * 100))
         offset = not offset
@@ -95,3 +98,9 @@ def calcHexagonImage(image, n, k):
     return hexImage
 
 
+
+def calcColors(colors, k):
+
+    print('Reducing number of colors')
+
+    return calcKMeansImage(colors, k)
