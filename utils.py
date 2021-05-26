@@ -93,7 +93,7 @@ def calcHexagonImage(pattern):
     hexImage = np.array(hexImage)
 
     print(cols,rows, cols * rows)
-    print('width: %fcm  height: %fcm' % (cols * 3, rows * (3 * 2) / math.sqrt(3)))
+    print('width: %fcm  height: %fcm' % (cols * 3, 3 + (rows-1) * (3 * 2) / math.sqrt(3) * 3 / 4))
 
     return hexImage
 
